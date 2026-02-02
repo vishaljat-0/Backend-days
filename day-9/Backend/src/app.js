@@ -1,6 +1,8 @@
 const express = require("express");
 const notemodel = require("./models/notes.models");
 const app = express();
+const cors = require("cors");
+app.use(cors());
 app.use(express.json());
 
 app.post("/api/notes", async (req, res) => {
@@ -12,7 +14,7 @@ app.post("/api/notes", async (req, res) => {
   });
   res.status(201).json({
     message: "success",
-    data: notes,
+     notes,
   });
 });
 app.get("/api/notes", async (req, res) => {

@@ -1,6 +1,7 @@
 const express = require("express");
 const notemodel = require("./models/notes.models");
 const app = express();
+const mongoose = require("mongoose");
 const cors = require("cors");
 app.use(cors());
 app.use(express.json());
@@ -32,14 +33,31 @@ app.delete("/api/notes/:id", async (req, res) => {
   });
 });
 app.patch("/api/notes/:id", async (req, res) => {
-  const id = req.params.id;
-  const { description } = req.body;
-  const updatedData = await notemodel.findByIdAndUpdate(id, { description  });
+  try {
+    const id = req.params.id.trim();
+     if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid note ID",
+      });
+    }
 
+  const { description } = req.body;
+  const updatedData = await notemodel.findByIdAndUpdate(id, { description  }, {new :true});
+
+
+   if (!updatedData) {
+      return res.status(404).json({ message: "Note not found" });
+    } 
   res.status(200).json({
     message: "note updated successfully ",
     updatedData
   });
+  } catch (error) {
+    console.error("PATCH ERROR:", error);
+    res.status(500).json({
+      message: "Server error during update",
+      error: error.message,
+    });
+  }
 });
-
 module.exports = app;

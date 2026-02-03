@@ -14,12 +14,12 @@ html{
   color: white;
 }
 .task{
-  display: flex;
+  /* display: flex; */
   justify-content: space-between;
   margin: 10px;
   padding: 10px;
   border: 1px solid white;
-  border-radius: 10px;
+  /* border-radius: 10px; */
   flex-wrap: wrap;
 }
 .task1{
@@ -30,4 +30,32 @@ html{
   border: 1px solid white;
   border-radius: 10px;
   flex-wrap: wrap;
+}
+button{
+  margin: 10px;
+  padding: 10px;
+  border: 1px solid white;
+  border-radius: 10px;
+}
+form{
+  margin: 10px;
+  padding: 10px;
+  border: 1px solid white;
+  border-radius: 10px;
+}
+form input{
+  margin: 10px;
+  padding: 10px;
+  border: 1px solid white;
+  border-radius: 10px;
+  outline: none;
+}
+
+button:active{
+    
+  background-color: white;
+  color: black;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  scale: 0.95;
 }

@@ -9,7 +9,7 @@ const App = () => {
   const [id, setId] = useState("");
 
   const apicall = async () => {
-    const response = await axios.get("http://localhost:3000/api/notes");
+    const response = await axios.get("https://backend-days.onrender.com/api/notes");
     console.log(response.data.data);
     setnote(response.data.data);
   };
@@ -22,7 +22,7 @@ const App = () => {
        const cleanId = id.trim();
        
       axios
-        .patch(`http://localhost:3000/api/notes/${cleanId}`, {
+        .patch(`https://backend-days.onrender.com/api/notes/${cleanId}`, {
           // title: showtitle,
           description: showdescription,
         })
@@ -39,7 +39,7 @@ const App = () => {
         
     } else {
       axios
-        .post("http://localhost:3000/api/notes", {
+        .post("https://backend-days.onrender.com/api/notes", {
           title: showtitle,
           description: showdescription,
         })
@@ -55,7 +55,7 @@ const App = () => {
   };
 
   let handledelete = (id) => {
-    axios.delete("http://localhost:3000/api/notes/" + id).then((response) => {
+    axios.delete("https://backend-days.onrender.com/api/notes/" + id).then((response) => {
       console.log(response);
       apicall();
     });

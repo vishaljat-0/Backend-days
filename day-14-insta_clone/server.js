@@ -1,6 +1,6 @@
+require("dotenv").config()
 const app=require("./src/app")
 const db = require("./src/config/db")
-require("dotenv").config()
 
 
 

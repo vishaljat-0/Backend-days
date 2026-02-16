@@ -36,7 +36,7 @@ async function register(req, res) {
     },
   );
 
-  res.cookie("toke", token);
+  res.cookie("token", token);
 
   res.status(201).json({
     message: "user created successfully",

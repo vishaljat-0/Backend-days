@@ -2,7 +2,7 @@ const postmodel = require("../models/post.model");
 const usermodel = require("../models/user.model");
 const jwt = require("jsonwebtoken");
 const ImageKit = require("imagekit");
-let decoded = null;
+const likemodel = require("../models/like.model");
 
 const imagekit = new ImageKit({
   privateKey: process.env.PRIVITE_KEY,
@@ -11,30 +11,19 @@ const imagekit = new ImageKit({
 });
 
 let createpost = async (req, res) => {
+   const id = req.user.id
   const file = await imagekit.upload({
     file: req.file.buffer,
     fileName: "test",
     folder: "insta_clone",
   });
 
-  const token = req.cookies.token;
-  if (!token) {
-    return res.status(401).json({
-      message: "unauthorized access",
-    });
-  }
-  try {
-    decoded = jwt.verify(token, process.env.SECRET_KEY);
-  } catch (error) {
-    return res.status(401).json({
-      message: "unauthorized access",
-    });
-  }
+  
 
   const post = await postmodel.create({
     caption: req.body.caption,
     imageUrl: file.url,
-    user: decoded.id,
+    user: id
   });
   res.status(201).json({
     message: "post created successfully",
@@ -43,25 +32,8 @@ let createpost = async (req, res) => {
 };
 
 let getpostcontroller = async (req, res) => {
-  const token = req.cookies.token;
-
-  if (!token) {
-    return res.status(401).json({
-      message: "unauthorized access",
-    });
-  }
-
-  let decoded = null;
-
-  try {
-    decoded = jwt.verify(token, process.env.SECRET_KEY);
-  } catch (error) {
-    return res.status(401).json({
-      message: "unauthorized access",
-    });
-  }
-
-  const userid = decoded.id;
+ 
+  const userid = req.user.id
   const post = await postmodel.find({
     user: userid,
   });
@@ -72,30 +44,16 @@ let getpostcontroller = async (req, res) => {
   });
 };
 
-let getpostdetailscontroller = async () => {
-  const token = req.cookies.token;
-
-  if (!token) {
-    return res.status(401).json({
-      message: "unauthorized access",
-    });
-  }
-  let decoded = null;
-  try {
-    decoded = jwt.verify(token, process.env.SECRET_KEY);
-  } catch (error) {
-    return res.status(401).json({
-      message: "unauthorized access",
-    });
-  }
-const id = decoded.id
+let getpostdetailscontroller = async (req,res) => {
+ 
+const id = req.user.id
 const postid = req.params.postId
 
 
 
 const post=await postmodel.findById(postid)
 if(!post)
-  res.status(404).json({
+ return res.status(404).json({
     message:"post not found"
   })
 const user=await usermodel.findById(post.user)
@@ -108,16 +66,43 @@ if(!isvaliduser)
   })
 
 
-res.status(201).json({
-  message:"post detaled  fecthed successfully",
+ return   res.status(200).json({
+   message:"post detaled  fecthed successfully",
   post,
   user
 })
 
 };
 
+
+
+
+let likecontroller = async (req, res) => {
+ const username = req.user.username;
+ const postid = req.params.postId;
+
+
+ const post =await postmodel.findById(postid)
+ if(!post)
+   return res.status(404).json({
+     message:"post not found"
+   })
+   const like= await likemodel.create({
+    post:postid,
+    user:username
+   })
+
+   return res.status(201).json({
+     message:"post liked successfully",
+     like
+   })
+
+
+};
 module.exports = {
   createpost,
   getpostcontroller,
-  getpostdetailscontroller
+  getpostdetailscontroller,
+  likecontroller
+  
 };

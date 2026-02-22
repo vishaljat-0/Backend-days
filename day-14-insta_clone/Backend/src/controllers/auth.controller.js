@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs");
 
 async function register(req, res) {
   const { username, email, password, bio, profilePic } = req.body;
-  const hash = await bcrypt.hash(password,10)
+  const hash = await bcrypt.hash(password, 10);
   const isuserexsits = await usermodel.findOne({
     $or: [{ email }, { username }],
   });
@@ -28,7 +28,8 @@ async function register(req, res) {
   });
   const token = jwt.sign(
     {
-      id: user._id,username:user.username
+      id: user._id,
+      username: user.username,
     },
     process.env.SECRET_KEY,
     {
@@ -40,10 +41,10 @@ async function register(req, res) {
 
   res.status(201).json({
     message: "user created successfully",
-    user :{
-      id:user._id,
-      username:user.username,
-      email:user.email
+    user: {
+      id: user._id,
+      username: user.username,
+      email: user.email,
     },
     token,
   });
@@ -68,7 +69,7 @@ async function login(req, res) {
     });
   }
 
-  const ispasswordvalid = await bcrypt.compare(password,user.password)
+  const ispasswordvalid = await bcrypt.compare(password, user.password);
   if (!ispasswordvalid) {
     return res.status(401).json({
       message: "password is incorrect",
@@ -76,7 +77,8 @@ async function login(req, res) {
   }
   const token = jwt.sign(
     {
-      id: user._id,username:user.username
+      id: user._id,
+      username: user.username,
     },
     process.env.SECRET_KEY,
     { expiresIn: "1d" },
@@ -90,9 +92,23 @@ async function login(req, res) {
   });
 }
 
+async function getuser(req, res) {
+  const userid = req.user.id;
+  const user = await usermodel.findById(userid);
+  if (!user) {
+    return res.status(404).json({
+      message: "user not found",
+    });
+  }
 
+  res.status(200).json({
+    message: "user fecthed successfully",
+    user,
+  });
+}
 
 module.exports = {
   register,
   login,
+  getuser,
 };

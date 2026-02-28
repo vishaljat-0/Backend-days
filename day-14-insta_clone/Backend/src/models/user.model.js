@@ -14,6 +14,7 @@ const userschema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, "password is required"],
+    select:false
   },
   bio: {
     type: String,
@@ -24,5 +25,5 @@ const userschema = new mongoose.Schema({
   },
 });
 
-const usermodel = mongoose.model("users", userschema);
+const usermodel = mongoose.model("User", userschema);
 module.exports = usermodel;

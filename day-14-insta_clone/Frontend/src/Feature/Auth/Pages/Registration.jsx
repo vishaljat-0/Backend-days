@@ -1,32 +1,19 @@
 import React, { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import "../Style/Form.scss";
-import axios from "axios";
+import { useAuth } from "../Hooks/UseAuth";
+import { Navigate } from "react-router";
 function Registration() {
+  const { handleregister, loading } = useAuth();
+  const navigate = useNavigate();
   const [username, setUsername] = useState("");
-  const [emial, setEmial] = useState("");
+  const [email, setemail] = useState("");
   const [password, setPassword] = useState("");
   let handlesubmit = (e) => {
     e.preventDefault();
 
-    // "/api/auth"
-    // authRouter.post("/register",register);
-
-    axios
-      .post("http://localhost:3000/api/auth/register", {
-        username: username,
-        email: emial,
-        password: password,
-      },{
-        withCredentials:true
-      })
-      .then((res) => {
-        console.log(res.data.message);
-      });
-
-    setUsername("");
-    setEmial("");
-    setPassword("");
+    handleregister(username, email, password).then((res) => console.log(res));
+    navigate("/");
   };
 
   return (
@@ -45,8 +32,8 @@ function Registration() {
             type="text"
           />
           <input
-            onChange={(e) => setEmial(e.target.value)}
-            value={emial}
+            onChange={(e) => setemail(e.target.value)}
+            value={email}
             name="email"
             placeholder="Enter Email"
             type="text"

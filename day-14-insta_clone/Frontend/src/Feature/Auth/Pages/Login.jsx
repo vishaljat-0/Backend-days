@@ -7,13 +7,15 @@ import { useAuth } from "../Hooks/UseAuth";
 function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const { handlelogin } = useAuth();
+  const { handlelogin, loading } = useAuth();
   const navigate = useNavigate();
   let loginsubmit = (e) => {
     e.preventDefault();
     handlelogin(username, password).then((res) => console.log(res));
-  };
-
+  }
+  if (loading) {
+    return <h1>Loading</h1>;
+  }
   return (
     <main>
       <div className="form-container">

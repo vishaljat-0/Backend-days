@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const userModel = require("../models/user.model");
 const blacklistmodel = require("../models/blacklist.model");
+const redis = require("../config/cache.js");
 const register = async (req, res) => {
   const { username, email, password } = req.body;
   isalreadyexist = await userModel.findOne({
@@ -90,14 +91,13 @@ const getme = async (req, res) => {
 
 const logoutcontroller = async (req, res) => {
   const token = req.cookies.token;
-  blacklistmodel.create({token})
-
-    res.clearCookie("token")
+  res.clearCookie("token");
+  await redis.set(token, Date.now().toString(), "EX", 60 * 60);
   return res.status(200).json({ message: "User logged out successfully" });
 };
 module.exports = {
   register,
   login,
   getme,
-  logoutcontroller
+  logoutcontroller,
 };

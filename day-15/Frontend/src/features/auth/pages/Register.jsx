@@ -23,13 +23,19 @@ function Register() {
     const container = containerRef.current;
 
     const handleAnimationEnd = () => {
-      container.classList.remove("active");
+      if (container) {
+        container.classList.remove("active");
+      }
     };
 
-    container.addEventListener("animationend", handleAnimationEnd);
+    if (container) {
+      container.addEventListener("animationend", handleAnimationEnd);
+    }
 
     return () => {
-      container.removeEventListener("animationend", handleAnimationEnd);
+      if (container) {
+        container.removeEventListener("animationend", handleAnimationEnd);
+      }
     };
   }, []);
   

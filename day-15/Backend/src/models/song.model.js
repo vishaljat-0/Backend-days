@@ -13,10 +13,10 @@ const songSchema = new mongoose.Schema({
     type: String,
     required: [true, "title is required"],
   },
-  type: String,
-  enum: {
-    values: ["sad", "happy", "surprised"],
-  },
+ mood:{
+    type:String,
+    enum:["happy","sad","surprised"]
+ }
 });
 const songmodel = mongoose.model("song", songSchema);
 module.exports = songmodel;

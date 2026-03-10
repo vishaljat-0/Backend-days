@@ -1,66 +1,77 @@
-import {
-    FaceLandmarker,
-    FilesetResolver
-} from "@mediapipe/tasks-vision";
-
-
+import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 
 export const init = async ({ landmarkerRef, videoRef, streamRef }) => {
-    const vision = await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
-    );
 
-    landmarkerRef.current = await FaceLandmarker.createFromOptions(
-        vision,
-        {
-            baseOptions: {
-                modelAssetPath:
-                    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task"
-            },
-            outputFaceBlendshapes: true,
-            runningMode: "VIDEO",
-            numFaces: 1
-        }
-    );
+  const vision = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+  );
 
-    streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true });
-    videoRef.current.srcObject = streamRef.current;
-    await videoRef.current.play();
+  landmarkerRef.current = await FaceLandmarker.createFromOptions(
+    vision,
+    {
+      baseOptions: {
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+      },
+      outputFaceBlendshapes: true,
+      runningMode: "VIDEO",
+      numFaces: 1,
+    }
+  );
+
+  streamRef.current = await navigator.mediaDevices.getUserMedia({
+    video: true,
+  });
+
+  videoRef.current.srcObject = streamRef.current;
 };
 
-export const detect = ({ landmarkerRef, videoRef, setExpression }) => {
-    if (!landmarkerRef.current || !videoRef.current) return;
 
-    const results = landmarkerRef.current.detectForVideo(
-        videoRef.current,
-        performance.now()
-    );
 
-    if (results.faceBlendshapes?.length > 0) {
-        const blendshapes = results.faceBlendshapes[ 0 ].categories;
+export const detect = async ({ landmarkerRef, videoRef }) => {
 
-        const getScore = (name) =>
-            blendshapes.find((b) => b.categoryName === name)?.score || 0;
+  if (!landmarkerRef.current || !videoRef.current) return null;
 
-        const smileLeft = getScore("mouthSmileLeft");
-        const smileRight = getScore("mouthSmileRight");
-        const jawOpen = getScore("jawOpen");
-        const browUp = getScore("browInnerUp");
-        const frownLeft = getScore("mouthFrownLeft");
-        const frownRight = getScore("mouthFrownRight");
+  const video = videoRef.current;
+  const landmarker = landmarkerRef.current;
 
-        console.log(getScore("mouthFrownLeft"))
+  const results = await landmarker.detectForVideo(video, Date.now());
 
-        let currentExpression = "Neutral";
+  if (!results.faceBlendshapes || results.faceBlendshapes.length === 0) {
+    return "no face";
+  }
 
-        if (smileLeft > 0.5 && smileRight > 0.5) {
-            currentExpression = "Happy 😄";
-        } else if (jawOpen > 0.2 && browUp > 0.2) {
-            currentExpression = "Surprised 😲";
-        } else if (frownLeft > 0.0001 && frownRight > 0.0001) {
-            currentExpression = "Sad 😢";
-        }
+  const shapes = results.faceBlendshapes[0].categories;
 
-        setExpression(currentExpression);
-    }
+  const getScore = (name) => {
+    const item = shapes.find((s) => s.categoryName === name);
+    return item ? item.score : 0;
+  };
+
+  const happyScore =
+    getScore("mouthSmileLeft") + getScore("mouthSmileRight");
+
+  const sadScore =
+    getScore("mouthFrownLeft") + getScore("mouthFrownRight");
+
+  const surpriseScore =
+    getScore("jawOpen") +
+    getScore("eyeWideLeft") +
+    getScore("eyeWideRight");
+
+  let emotion = "neutral";
+
+  const maxScore = Math.max(happyScore, sadScore, surpriseScore);
+
+  if (maxScore === happyScore && happyScore > 0.4) {
+    emotion = "happy";
+  }
+  else if (maxScore === sadScore && sadScore > 0.4) {
+    emotion = "sad";
+  }
+  else if (maxScore === surpriseScore && surpriseScore > 0.5) {
+    emotion = "surprised";
+  }
+
+  return emotion;
 };

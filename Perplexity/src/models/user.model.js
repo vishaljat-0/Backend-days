@@ -37,7 +37,7 @@ userSchema.pre("save", async function () {
   this.password = await bcrypt.hash(this.password, 10);
 });
 userSchema.methods.camparePassword = function (candidatePassword) {
-  return bcrypt.campare(candidatePassword, this.password);
+  return bcrypt.compare(candidatePassword, this.password);
 };
 
 const userModel = mongoose.model("User", userSchema);

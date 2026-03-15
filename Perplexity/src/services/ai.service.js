@@ -1,18 +1,14 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 
 export const testfn = async () => {
-  try {
 
-    const model = new ChatGoogleGenerativeAI({
-      model: "gemini-2.0-flash",
-      apiKey: process.env.GOOGLE_API_KEY,
-    });
+  const model = new ChatGoogleGenerativeAI({
+    model: "gemini-2.5-flash-lite",
+    apiKey: process.env.GOOGLE_API_KEY
+  });
 
-    const res = await model.invoke("Hello, how are you?");
+  const res = await model.invoke("What is the capital of India?");
 
-    console.log(res.content);
+  console.log(res.content);
 
-  } catch (error) {
-    console.error("AI ERROR:", error);
-  }
 };

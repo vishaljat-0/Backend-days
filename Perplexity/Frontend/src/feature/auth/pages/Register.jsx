@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-/* ─────────────────────────────────────────────
+import { useAuth } from "../hook/auth.hook";
+  /* ─────────────────────────────────────────────
    Icons
 ───────────────────────────────────────────── */
 const EyeOpen = () => (
@@ -125,7 +125,13 @@ export default function RegisterPage() {
   const [focused, setFocused] = useState("");
   const [visible, setVisible] = useState(false);
 
+  const {handleregister} = useAuth();
+
   useEffect(() => { const t = setTimeout(() => setVisible(true), 80); return () => clearTimeout(t); }, []);
+
+
+
+  
 
   /* two-way binding helper */
   const bind = (field) => ({
@@ -156,6 +162,12 @@ export default function RegisterPage() {
     await new Promise((r) => setTimeout(r, 1500));
     setLoading(false);
     setDone(true);
+    const payload ={
+      username:form.username,
+      email:form.email,
+      password:form.password
+    }
+    handleregister(payload);
   };
 
   /* shared input class builder */
@@ -194,12 +206,12 @@ export default function RegisterPage() {
               {form.username}
             </span>
           </h2>
-          <p className="text-sm text-white/35 mb-6">Your account has been created.</p>
+          <p className="text-sm text-white/35 mb-6">Your account has been created successfully, Please Verify your Account by clicking the link sent to your email and Login to continue </p>
           <button
-            onClick={() => { setDone(false); setForm({ username: "", email: "", password: "" }); }}
+            onClick={() => { navigate("/login"); setDone(false); setForm({ username: "", email: "", password: "" }); }}
             className="text-xs text-white/25 underline underline-offset-4 hover:text-white/50 transition-colors bg-transparent border-none cursor-pointer"
           >
-            ← Back to register
+            ← Login and continue
           </button>
         </div>
         <GlobalStyles />

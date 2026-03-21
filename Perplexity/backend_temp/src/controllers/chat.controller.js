@@ -17,8 +17,10 @@ export const sendMessageController = async (req, res, next) => {
       const chattitle = await chatTitle(message);
       chat = await chatModel.create({
         user: req.user.id,
-        title: chattitle.content,
+        title: chattitle.content.replace(/\*\*/g, "").replace(/"/g, "").trim()
       });
+      console.log();
+      
     } else {
       chat = await chatModel.findById(chatId);
       if (!chat) {
@@ -39,17 +41,24 @@ export const sendMessageController = async (req, res, next) => {
     const aiResponce = await genrateResponce(messages);
     const aiMessage = await messageModel.create({
       chat: chat._id || chatId,
-      content: aiResponce.content,
+      content: aiResponce,
       role: "ai",
     });
-
+console.log("AI Response:", aiResponce);
     res.status(201).json({
+
       success: true,
       message: "Message sent successfully",
+      chat,
       userMessage,
       aiMessage
     });
   } catch (error) {
+    if(error.message.includes("Quota exceeded")){
+      const err = new Error("Quota exceeded");
+      err.status = 400;
+      next(err);
+    }
     const err = new Error(error.message || "Error sending message");
     err.status = 500;
     next(err);

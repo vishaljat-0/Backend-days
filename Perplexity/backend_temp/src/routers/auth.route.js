@@ -4,6 +4,7 @@ import {
   emailverificationController,
   logincontroller,
   getmecontroller,
+  logoutcontoller,
 } from "../controllers/auth.controller.js";
 import {
   registerValidation,
@@ -16,6 +17,6 @@ authRoute.post("/register", registerValidation, registerController);
 authRoute.post("/login", loginValidation, logincontroller);
 authRoute.get("/getme", authmiddleware, getmecontroller);
 authRoute.get("/verifyemail", emailverificationController);
+authRoute.get("/logout", logoutcontoller);
 
 export default authRoute;
-    

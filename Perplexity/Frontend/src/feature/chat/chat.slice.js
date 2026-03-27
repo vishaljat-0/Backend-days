@@ -6,6 +6,7 @@ const chatSlice = createSlice({
     chats: {},
     currentChatId: null,
     isLoading: false,
+    isStreaming: false,
 
     error: null,
   },
@@ -33,16 +34,41 @@ const chatSlice = createSlice({
         };
       }
 
-      state.chats[chatId].message.push({ content, role, createdAt: new Date().toISOString() });
+      state.chats[chatId].message.push({
+        content,
+        role,
+        createdAt: new Date().toISOString(),
+      });
+    },
+    addEmptyAiMessage: (state, action) => {
+      const { chatId } = action.payload;
+      if (!state.chats[chatId]) return;
+      state.chats[chatId].message.push({
+        content: "",
+        role: "ai",
+        createdAt: new Date().toISOString(),
+      });
+    },
+    appendStreamChunk: (state, action) => {
+      const { chatId, chunk } = action.payload;
+      if (!state.chats[chatId]) return;
+      const messages = state.chats[chatId].message;
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg?.role === "ai") {
+        lastMsg.content += chunk;
+      }
     },
     setChats: (state, action) => {
-  state.chats = action.payload;
-},
+      state.chats = action.payload;
+    },
     setCurrentChatId: (state, action) => {
       state.currentChatId = action.payload;
     },
     setIsLoading: (state, action) => {
       state.isLoading = action.payload;
+    },
+    setIsStreaming: (state, action) => {
+      state.isStreaming = action.payload;
     },
     setError: (state, action) => {
       state.error = action.payload;
@@ -61,37 +87,28 @@ const chatSlice = createSlice({
 
       state.chats[chatId].message = messages;
     },
+    resetState: (state) => {
+      state.chats = {};
+      state.currentChatId = null;
+      state.isLoading = false;
+      state.error = null;
+      state.isStreaming = false;
+    },
   },
-  resetState: (state) => {
-       state.chats = {};
-       state.currentChatId = null;
-       state.isLoading = false;
-       state.error = null;
-     },
-appendStreamChunk: (state, action) => {
-  const { chatId, chunk } = action.payload;
-  if (!state.chats[chatId]) return;
-
-  const messages = state.chats[chatId].messages;
-  const lastMsg = messages[messages.length - 1];
-
-  if (lastMsg?.role === "assistant") {
-    lastMsg.content += chunk;           // ✅ stream chunk jodta jaega
-  }
-},
-
 });
-
 
 export const {
   setChats,
   setCurrentChatId,
   setIsLoading,
   setError,
+  addEmptyAiMessage,
+  setIsStreaming,
+
   createNewChat,
   addNewMessage,
   updateMessages,
   resetState,
-  appendStreamChunk
+  appendStreamChunk,
 } = chatSlice.actions;
 export default chatSlice.reducer;

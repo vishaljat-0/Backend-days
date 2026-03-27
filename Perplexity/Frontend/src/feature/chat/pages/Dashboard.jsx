@@ -1,469 +1,497 @@
-import React, { useState, useRef, useEffect } from "react";
-import { initializesocket } from "../service/chat.socket";
+import { useState, useRef, useEffect, memo, useCallback } from "react";
 import { useChat } from "../hook/chat.hook";
 import { useSelector } from "react-redux";
-import { setCurrentChatId } from "../chat.slice";
+import ReactMarkdown from "react-markdown";
 
-
-
-
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function formatText(text) {
-  let parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\n)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**"))
-      return (
-        <strong key={i} className="text-slate-100 font-semibold">
-          {part.slice(2, -2)}
-        </strong>
-      );
-    if (part.startsWith("`") && part.endsWith("`"))
-      return (
-        <code
-          key={i}
-          className="bg-slate-700/60 text-violet-300 px-1.5 py-0.5 rounded text-[0.82em] font-mono"
-        >
-          {part.slice(1, -1)}
-        </code>
-      );
-    if (part === "\n") return <br key={i} />;
-    return part;
-  });
-}
-
-function CodeBlock({ code }) {
-  const [copied, setCopied] = useState(false);
-  const copy = () => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
-  };
+// ─── AI Avatar Icon ───────────────────────────────────────────────────────────
+function AIIcon() {
   return (
-    <div className="relative mt-3 rounded-xl overflow-hidden border border-slate-700/60">
-      <div className="flex items-center justify-between px-4 py-2 bg-slate-800/80 border-b border-slate-700/40">
-        <span className="text-xs text-slate-400 font-mono">python</span>
-        <button
-          onClick={copy}
-          className="text-xs text-slate-400 hover:text-violet-300 transition-colors flex items-center gap-1.5"
-        >
-          {copied ? (
-            <>
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              Copied
-            </>
-          ) : (
-            <>
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                />
-              </svg>
-              Copy
-            </>
-          )}
-        </button>
-      </div>
-      <pre className="p-4 text-sm font-mono text-slate-300 overflow-x-auto bg-slate-900/70 leading-relaxed">
-        {code}
-      </pre>
-    </div>
+    <svg
+      width={15}
+      height={15}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#a78bfa"
+      strokeWidth={1.8}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5
+           M9.75 3.104c-.251.023-.501.05-.75.082
+           m.75-.082a24.301 24.301 0 014.5 0
+           m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3
+           M14.25 3.104c.251.023.501.05.75.082
+           M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15
+             a9.065 9.065 0 00-6.23-.693L5 14.5
+           m14.8.8l1.402 1.402c1 1 .03 2.798-1.345 2.798
+           H4.275c-1.375 0-2.346-1.799-1.345-2.798L5 14.5"
+      />
+    </svg>
   );
 }
 
-function MessageBubble({ msg }) {
+// ─── Message Bubble ───────────────────────────────────────────────────────────
+const MessageBubble = memo(function MessageBubble({ msg, isStreamingThis }) {
   const isUser = msg.role === "user";
-  const parts = msg.text.split(/(```[\s\S]*?```)/g);
+  const showCursor = !isUser && isStreamingThis;
+  const [copied, setCopied] = useState(false);
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(msg.text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  }, [msg.text]);
 
   return (
     <div
-      className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"} group`}
+      className={`anim-fade-slide flex gap-3 items-start ${isUser ? "flex-row-reverse" : "flex-row"}`}
     >
       {/* Avatar */}
       <div
-        className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-lg ${isUser ? "bg-linear-to-br from-violet-500 to-indigo-600 text-white" : "bg-linear-to-br from-slate-700 to-slate-800 border border-slate-600/60"}`}
+        className={`relative shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold
+        ${
+          isUser
+            ? "bg-linear-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-700/40"
+            : "bg-linear-to-br from-slate-800 to-slate-900 border border-violet-800/30"
+        }`}
       >
-        {isUser ? (
-          "U"
-        ) : (
-          <svg
-            className="w-4 h-4 text-violet-400"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.8}
-              d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1 1 .03 2.798-1.345 2.798H4.275c-1.375 0-2.346-1.799-1.345-2.798L5 14.5"
-            />
-          </svg>
-        )}
+        {isUser ? <span className="text-white">U</span> : <AIIcon />}
+        {!isUser && isStreamingThis && <span className="pulse-ring" />}
       </div>
 
-      {/* Bubble */}
+      {/* Bubble + timestamp */}
       <div
-        className={`max-w-[75%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-1`}
+        className={`flex flex-col gap-1 max-w-[74%] ${isUser ? "items-end" : "items-start"}`}
       >
         <div
-          className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-md ${
-            isUser
-              ? "bg-linear-to-br from-violet-600/80 to-indigo-700/80 text-slate-100 rounded-tr-sm border border-violet-500/30 backdrop-blur-sm"
-              : "bg-slate-800/70 text-slate-300 rounded-tl-sm border border-slate-700/50 backdrop-blur-sm"
-          }`}
+          className={`px-4 py-3 text-[13.5px] leading-relaxed wrap-break-word backdrop-blur-md
+    ${
+      isUser
+        ? "rounded-[18px_4px_18px_18px] bg-violet-900/50 text-violet-100 border border-violet-700/30"
+        : "rounded-[4px_18px_18px_18px] bg-slate-900/70 text-slate-300 border border-white/5"
+    }`}
         >
-          {parts.map((part, i) => {
-            if (part.startsWith("```") && part.endsWith("```")) {
-              const code = part
-                .replace(/^```\w*\n?/, "")
-                .replace(/```$/, "")
-                .trim();
-              return <CodeBlock key={i} code={code} />;
-            }
-            const lines = part.split("\n");
-            return (
-              <span key={i}>
-                {lines.map((line, j) => {
-                  if (line.startsWith("• ")) {
-                    return (
-                      <span key={j} className="flex gap-2 mt-1">
-                        <span className="text-violet-400 shrink-0 mt-0.5">
-                          •
-                        </span>
-                        <span>{formatText(line.slice(2))}</span>
-                      </span>
-                    );
-                  }
-                  return (
-                    <span key={j}>
-                      {j > 0 && <br />}
-                      {formatText(line)}
-                    </span>
-                  );
-                })}
-              </span>
-            );
-          })}
+          {isUser ? (
+            <span>{msg.text}</span>
+          ) : (
+            <span className={showCursor ? "cursor-blink" : ""}>
+              <div className="prose prose-invert prose-sm max-w-none">
+                <ReactMarkdown>{msg.text}</ReactMarkdown>
+              </div>
+            </span>
+          )}
         </div>
-        <span className="text-[10px] text-slate-600 px-1">{msg.time}</span>
+
+        {/* Timestamp + copy button */}
+        <div className="flex items-center gap-2 px-1">
+          <span className="text-[10px] text-slate-600">{msg.time}</span>
+          {!isUser && !isStreamingThis && (
+            <button
+              onClick={handleCopy}
+              className="text-slate-600 hover:text-violet-400 transition-colors duration-200"
+            >
+              {copied ? (
+                <svg
+                  width={12}
+                  height={12}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  width={12}
+                  height={12}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
+                </svg>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// ─── Typing Indicator (shown before first token arrives) ──────────────────────
+function TypingIndicator() {
+  return (
+    <div className="anim-fade-slide flex gap-3 items-start">
+      <div className="relative shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-linear-to-br from-slate-800 to-slate-900 border border-violet-800/30">
+        <AIIcon />
+        <span className="pulse-ring" />
+      </div>
+      <div className="px-4 py-3.5 rounded-[4px_18px_18px_18px] bg-slate-900/70 border border-white/5 flex items-center gap-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-violet-500 dot-0" />
+        <span className="w-1.5 h-1.5 rounded-full bg-violet-500 dot-1" />
+        <span className="w-1.5 h-1.5 rounded-full bg-violet-500 dot-2" />
       </div>
     </div>
   );
 }
 
-// ── Main Dashboard Component ──────────────────────────────────────────────────
-function Dashboard() {
-  // ── Your original socket logic — untouched ──
-
-  const { socket, handleSendmessage, getchats, handleOpenChat, handleNewChat,handleLogout  } =
-    useChat();
-  const chats = useSelector((state) => state.chat.chats);
-
-  const currentChatId = useSelector((state) => state.chat.currentChatId);
-   const currentChat = useSelector((state) => 
-  state.chat.chats[state.chat.currentChatId]
-   
-  );
-  const username = useSelector((state) => state.auth.user.username);
-  console.log(username);
-  
-  console.log(currentChat);
-
-  useEffect(() => {
-    getchats();
-  }, []);
-  console.log("Chats:", chats);
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleConnect = () => {
-      console.log("Socket connected:", socket.id);
-    };
-
-    socket.on("connect", handleConnect);
-
-    return () => {
-      socket.off("connect", handleConnect);
-    };
-  }, [socket]);
-  // ── Dashboard UI state ──
-  const [input, setInput] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const bottomRef = useRef(null);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    const payload = { message: input, chatId: currentChatId };
-    await handleSendmessage(payload);
-    setInput("");
-  };
-
-  useEffect(() => {
-    console.log("Chats:", chats);
-    console.log("currentChatId:", currentChatId);
-  }, [chats, currentChatId]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chats, currentChatId]);
-
+// ─── Empty State ──────────────────────────────────────────────────────────────
+function EmptyState() {
   return (
-    <div
-      className="flex h-screen w-full overflow-hidden font-sans"
-      style={{
-        background: "#0d0f17",
-        fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-      }}
-    >
-      {/* ── Ambient background blobs ── */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
-        <div
-          className="absolute -top-40 -left-40 w-150 h-150 rounded-full opacity-[0.07]"
-          style={{
-            background: "radial-gradient(circle, #7c3aed 0%, transparent 70%)",
-          }}
-        />
-        <div
-          className="absolute top-1/3 -right-32 w-125 h-125 rounded-full opacity-[0.06]"
-          style={{
-            background: "radial-gradient(circle, #4f46e5 0%, transparent 70%)",
-          }}
-        />
-        <div
-          className="absolute bottom-0 left-1/3 w-175 h-100 rounded-full opacity-[0.05]"
-          style={{
-            background: "radial-gradient(circle, #7c3aed 0%, transparent 70%)",
-          }}
-        />
-        {/* Wavy SVG at top */}
+    <div className="anim-fade-in flex flex-col items-center justify-center h-full gap-4 py-20">
+      <div
+        className="w-14 h-14 rounded-2xl flex items-center justify-center bg-violet-950/50 border border-violet-800/30"
+        style={{ boxShadow: "0 0 40px rgba(124,58,237,0.1)" }}
+      >
         <svg
-          className="absolute top-0 left-0 w-full opacity-[0.06]"
-          viewBox="0 0 1440 320"
-          preserveAspectRatio="none"
+          width={22}
+          height={22}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#7c3aed"
+          strokeWidth={1.5}
         >
           <path
-            fill="#7c3aed"
-            d="M0,160L60,170.7C120,181,240,203,360,192C480,181,600,139,720,133.3C840,128,960,160,1080,165.3C1200,171,1320,149,1380,138.7L1440,128L1440,0L1380,0C1320,0,1200,0,1080,0C960,0,840,0,720,0C600,0,480,0,360,0C240,0,120,0,60,0L0,0Z"
-          />
-        </svg>
-        <svg
-          className="absolute top-8 left-0 w-full opacity-[0.04]"
-          viewBox="0 0 1440 320"
-          preserveAspectRatio="none"
-        >
-          <path
-            fill="#4f46e5"
-            d="M0,96L80,112C160,128,320,160,480,154.7C640,149,800,107,960,96C1120,85,1280,107,1360,117.3L1440,128L1440,0L1360,0C1280,0,1120,0,960,0C800,0,640,0,480,0C320,0,160,0,80,0L0,0Z"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M13 10V3L4 14h7v7l9-11h-7z"
           />
         </svg>
       </div>
+      <p className="text-slate-500 text-sm">Ask anything to get started</p>
+      <p className="text-slate-700 text-[11px]">Powered by Aura-4 Ultra</p>
+    </div>
+  );
+}
 
-      {/* ── SIDEBAR ── */}
+// ─── Sidebar Chat Item ────────────────────────────────────────────────────────
+function SidebarChatItem({ chat, isActive, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left px-3 py-2 rounded-lg text-[12.5px] transition-all duration-150 border mb-0.5 truncate
+        ${
+          isActive
+            ? "bg-violet-950/50 text-violet-300 border-violet-800/40"
+            : "text-slate-500 border-transparent hover:bg-white/3 hover:text-slate-300"
+        }`}
+    >
+      {chat.title}
+    </button>
+  );
+}
+
+// ─── Suggestion Pill ──────────────────────────────────────────────────────────
+function SuggestionPill({ label, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="shrink-0 text-[11px] px-3 py-1.5 rounded-full border border-violet-900/30 text-slate-500 bg-violet-950/10 hover:bg-violet-950/40 hover:text-violet-300 hover:border-violet-700/50 transition-all duration-150 whitespace-nowrap"
+    >
+      {label}
+    </button>
+  );
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+export default function Dashboard() {
+  // ── Hooks ──
+  const {
+    socket,
+    getchats,
+    handleOpenChat,
+    handleNewChat,
+    handleLogout,
+    handleStreamMessage,
+  } = useChat();
+  const chats = useSelector((s) => s.chat.chats);
+  const currentChatId = useSelector((s) => s.chat.currentChatId);
+  const currentChat = useSelector((s) => s.chat.chats[s.chat.currentChatId]);
+  const isStreaming = useSelector((s) => s.chat.isStreaming);
+  const username = useSelector((s) => s.auth.user.username);
+
+  // ── Local state ──
+  const [input, setInput] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // ── Refs ──
+  const bottomRef = useRef(null);
+  const textareaRef = useRef(null);
+  const isSubmittingRef = useRef(false); // prevents double-submit
+
+  // ── Load chats on mount ──
+  useEffect(() => {
+    getchats();
+  }, []);
+
+  // ── Socket connect log (cleanup prevents duplicate listeners) ──
+  useEffect(() => {
+    if (!socket) return;
+    const onConnect = () => console.log("Socket connected:", socket.id);
+    socket.on("connect", onConnect);
+    return () => socket.off("connect", onConnect);
+  }, [socket]);
+
+  // ── Auto-scroll: instant during stream, smooth on chat switch ──
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({
+      behavior: isStreaming ? "instant" : "smooth",
+    });
+  }, [chats, currentChatId, isStreaming]);
+
+  // ── Auto-resize textarea as user types ──
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 140) + "px";
+  }, [input]);
+
+  // ── Submit with double-fire guard ──
+  const handleSubmit = useCallback(async () => {
+    if (!input.trim() || isStreaming || isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    const payload = { message: input, chatId: currentChatId };
+    setInput("");
+    try {
+      await handleStreamMessage(payload);
+    } finally {
+      isSubmittingRef.current = false;
+    }
+  }, [input, currentChatId, isStreaming, handleStreamMessage]);
+
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSubmit();
+      }
+    },
+    [handleSubmit],
+  );
+
+  // ── Derived values ──
+  const messages = currentChatId ? (chats[currentChatId]?.message ?? []) : [];
+  const lastMsg = messages[messages.length - 1];
+  const showDots =
+    isStreaming &&
+    (!lastMsg || lastMsg.role !== "assistant" || !lastMsg.content);
+
+  const SUGGESTIONS = [
+    "Explain backpropagation",
+    "Code a neural net",
+    "Compare GPT vs BERT",
+    "What is LoRA?",
+  ];
+
+  return (
+    <div className="flex h-screen w-full overflow-hidden bg-[#080a12]">
+      {/* ── Decorative ambient blobs ── */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div
+          className="absolute -top-40 -left-40 w-150 h-150 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)",
+          }}
+        />
+        <div
+          className="absolute top-1/3 -right-32 w-125 h-125 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(79,70,229,0.09) 0%, transparent 70%)",
+          }}
+        />
+        <div
+          className="absolute bottom-0 left-1/3 w-175 h-100 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 70%)",
+          }}
+        />
+      </div>
+
+      {/* ══════════ SIDEBAR ══════════ */}
       <aside
-        className={`relative z-10 flex flex-col transition-all duration-300 ease-in-out border-r border-slate-800/60 ${sidebarOpen ? "w-64" : "w-0 overflow-hidden"}`}
-        style={{
-          background: "rgba(13,15,23,0.95)",
-          backdropFilter: "blur(20px)",
-        }}
+        className={`relative z-10 flex flex-col border-r border-white/5 bg-[rgba(10,11,18,0.97)] backdrop-blur-2xl transition-all duration-300 ease-in-out ${sidebarOpen ? "w-64" : "w-0 overflow-hidden"}`}
       >
-        {/* Logo — "Perplexity AI" */}
-        <div className="flex items-center gap-2.5 px-5 py-5 border-b border-slate-800/60">
+        {/* Logo */}
+        <div className="flex items-center gap-2.5 px-5 py-4.5 border-b border-white/5 shrink-0">
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center shadow-lg"
-            style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)" }}
+            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+            style={{
+              background: "linear-gradient(135deg,#7c3aed,#4f46e5)",
+              boxShadow: "0 2px 12px rgba(124,58,237,0.4)",
+            }}
           >
             <svg
-              className="w-4 h-4 text-white"
+              width={14}
+              height={14}
               viewBox="0 0 24 24"
               fill="none"
-              stroke="currentColor"
+              stroke="#fff"
+              strokeWidth={2.2}
             >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
                 d="M13 10V3L4 14h7v7l9-11h-7z"
               />
             </svg>
           </div>
-          <span className="text-slate-100 font-semibold text-[15px] tracking-tight">
+          <span className="text-slate-100 font-semibold text-[14px] tracking-tight whitespace-nowrap">
             Perplexity AI
           </span>
-          <div className="ml-auto w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
+          <div
+            className="ml-auto w-2 h-2 rounded-full bg-emerald-400 shrink-0"
+            style={{ boxShadow: "0 0 8px rgba(52,211,153,0.6)" }}
+          />
         </div>
 
         {/* New Chat */}
-        <div className="px-3 pt-4 pb-2">
+        <div className="px-3 pt-3 pb-2 shrink-0">
           <button
             onClick={handleNewChat}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-slate-300 border border-dashed border-slate-700/70 hover:border-violet-500/50 hover:text-violet-300 hover:bg-violet-500/5 transition-all duration-200"
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] text-slate-400 border border-dashed border-violet-900/40 hover:border-violet-600/60 hover:text-violet-300 hover:bg-violet-950/20 transition-all duration-200 whitespace-nowrap"
           >
             <svg
-              className="w-4 h-4"
+              width={14}
+              height={14}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
+              strokeWidth={2}
             >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
                 d="M12 4v16m8-8H4"
               />
             </svg>
             New conversation
-            <span className="ml-auto w-2 h-2 rounded-full bg-violet-400 shadow-sm shadow-violet-400/50" />
           </button>
         </div>
 
         {/* Chat history */}
         <div
-          className="flex-1 overflow-y-auto px-3 py-2 space-y-4"
+          className="flex-1 overflow-y-auto px-3 py-1"
           style={{ scrollbarWidth: "none" }}
         >
           {Object.values(chats).map((chat) => (
-            <button
+            <SidebarChatItem
               key={chat.id}
+              chat={chat}
+              isActive={chat.id === currentChatId}
               onClick={() => handleOpenChat(chat.id, chats)}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
-            >
-              <span className="truncate block">{chat.title}</span>
-            </button>
+            />
           ))}
         </div>
 
-{/* username  */}
-        <div className="px-3 pb-4 pt-2 border-t border-slate-800/60">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-colors cursor-pointer">
+        {/* User profile */}
+        <div className="px-3 pb-4 pt-2 border-t border-white/5 shrink-0">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/3 transition-colors cursor-pointer">
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow"
-              style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)" }}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold text-white shrink-0"
+              style={{
+                background: "linear-gradient(135deg,#7c3aed,#4f46e5)",
+                boxShadow: "0 2px 8px rgba(124,58,237,0.35)",
+              }}
             >
-              {username.charAt(0).toUpperCase()}
+              {username?.charAt(0)?.toUpperCase()}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-slate-200 truncate font-medium">
-               {username}
-              </p>
-            </div>
-          <svg
-         onClick={handleLogout}
-
-  className="w-4 h-4 text-slate-500"
-  fill="none"
-  viewBox="0 0 24 24"
-  stroke="currentColor"
->
-  <path
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    strokeWidth={2}
-    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-  />
-</svg>
-          </div>
-        </div>
-      </aside>
-
-      {/* ── MAIN AREA ── */}
-      <div className="relative z-10 flex flex-col flex-1 min-w-0">
-        {/* Top bar */}
-        <header
-          className="flex items-center gap-3 px-5 py-4 border-b border-slate-800/50"
-          style={{
-            background: "rgba(13,15,23,0.8)",
-            backdropFilter: "blur(20px)",
-          }}
-        >
-          <button
-            onClick={() => setSidebarOpen((s) => !s)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+            <span className="text-[12.5px] text-slate-400 flex-1 truncate">
+              {username}
+            </span>
+            <button
+              onClick={handleLogout}
+              className="text-slate-600 hover:text-slate-400 transition-colors shrink-0"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.8}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
-<div className="flex items-center gap-2">
-  <span className="text-slate-200 text-sm font-medium truncate">
-    {currentChat?.title || "New Conversation"}
-  </span>
-  <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${
-    currentChat 
-      ? "bg-emerald-400 shadow shadow-emerald-400/60"   
-      : "bg-violet-400 shadow shadow-violet-400/50"    
-  }`} />
-</div>
-
-
-          <div className="ml-auto flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-slate-400 border border-slate-700/50 bg-slate-800/40">
               <svg
-                className="w-3 h-3 text-violet-400"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <circle cx="12" cy="12" r="10" opacity="0.2" />
-                <circle cx="12" cy="12" r="4" />
-              </svg>
-              Aura-4 Ultra
-            </div>
-            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all">
-              <svg
-                className="w-4 h-4"
+                width={15}
+                height={15}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                strokeWidth={2}
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 5v.01M12 12v.01M12 19v.01"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                 />
               </svg>
             </button>
           </div>
+        </div>
+      </aside>
+
+      {/* ══════════ MAIN CONTENT ══════════ */}
+      <div className="relative z-10 flex flex-col flex-1 min-w-0">
+        {/* Header */}
+        <header className="flex items-center gap-3 px-5 py-3 border-b border-white/5 bg-[rgba(8,10,18,0.85)] backdrop-blur-2xl shrink-0">
+          <button
+            onClick={() => setSidebarOpen((s) => !s)}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-white/4 transition-all"
+          >
+            <svg
+              width={18}
+              height={18}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.8}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-slate-200 text-[13.5px] font-medium truncate">
+              {currentChat?.title || "New Conversation"}
+            </span>
+            <div
+              className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all duration-300
+              ${isStreaming ? "bg-violet-500" : currentChat ? "bg-emerald-400" : "bg-slate-600"}`}
+              style={{
+                boxShadow: isStreaming
+                  ? "0 0 10px #7c3aed"
+                  : currentChat
+                    ? "0 0 8px rgba(52,211,153,0.6)"
+                    : "none",
+              }}
+            />
+          </div>
+
+          <div className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] text-violet-500 border border-violet-900/30 bg-violet-950/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />
+            Aura-4 Ultra
+          </div>
         </header>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-          <div className="max-w-3xl mx-auto w-full space-y-6">
-            {currentChatId && chats[currentChatId]?.message?.length > 0 ? (
-              chats[currentChatId].message.map((msg, index) => (
+        {/* Message list */}
+        <div className="flex-1 overflow-y-auto px-5 py-6">
+          <div className="max-w-180 mx-auto flex flex-col gap-5">
+            {messages.length === 0 && !isStreaming ? (
+              <EmptyState />
+            ) : (
+              messages.map((msg, index) => (
                 <MessageBubble
-                  key={index}
+                  key={msg._id || index}
                   msg={{
                     role: msg.role,
                     text: msg.content,
@@ -472,125 +500,80 @@ function Dashboard() {
                       minute: "2-digit",
                     }),
                   }}
+                  isStreamingThis={
+                    isStreaming &&
+                    index === messages.length - 1 &&
+                    msg.role === "assistant"
+                  }
                 />
               ))
-            ) : (
-              <div className="text-center text-slate-500 text-sm">
-                Start a conversation...
-              </div>
             )}
 
+            {showDots && <TypingIndicator />}
             <div ref={bottomRef} />
           </div>
         </div>
 
-        {/* Wavy divider */}
-        <div className="relative h-4 shrink-0 pointer-events-none -mb-1">
-          <svg
-            className="absolute inset-0 w-full h-full opacity-20"
-            viewBox="0 0 1440 16"
-            preserveAspectRatio="none"
-          >
-            <path
-              fill="#7c3aed"
-              d="M0,8 C240,16 480,0 720,8 C960,16 1200,0 1440,8 L1440,16 L0,16 Z"
-            />
-          </svg>
-        </div>
+        {/* Gradient divider */}
+        <div className="h-px shrink-0 bg-linear-to-r from-transparent via-violet-900/30 to-transparent" />
 
         {/* Input area */}
-        <div
-          className="px-4 pb-5 pt-3 shrink-0"
-          style={{
-            background: "rgba(13,15,23,0.95)",
-            backdropFilter: "blur(24px)",
-          }}
-        >
-          <div className="max-w-3xl mx-auto">
-            {/* Quick suggestions */}
+        <div className="px-5 pb-5 pt-3 bg-[rgba(8,10,18,0.97)] backdrop-blur-2xl shrink-0">
+          <div className="max-w-180 mx-auto">
+            {/* Suggestion pills */}
             <div
               className="flex gap-2 mb-3 overflow-x-auto pb-1"
               style={{ scrollbarWidth: "none" }}
             >
-              {[
-                "Explain backpropagation",
-                "Code a neural net",
-                "Compare GPT vs BERT",
-                "What is LoRA?",
-              ].map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setInput(s)}
-                  className="shrink-0 text-xs px-3 py-1.5 rounded-full border border-slate-700/60 text-slate-400 hover:border-violet-500/50 hover:text-violet-300 hover:bg-violet-500/5 transition-all duration-200 whitespace-nowrap"
-                >
-                  {s}
-                </button>
+              {SUGGESTIONS.map((s) => (
+                <SuggestionPill key={s} label={s} onClick={() => setInput(s)} />
               ))}
             </div>
 
             {/* Input box */}
             <div
-              className="relative flex items-end gap-2 rounded-2xl border border-slate-700/60 bg-slate-800/50 px-4 py-3 shadow-xl shadow-black/30"
-              style={{ backdropFilter: "blur(12px)" }}
+              className={`flex items-end gap-3 rounded-2xl border px-4 py-3 bg-slate-900/80 backdrop-blur-md transition-all duration-200
+              ${input.trim() ? "border-violet-700/50 shadow-[0_0_20px_rgba(124,58,237,0.12)]" : "border-white/[0.07]"}`}
             >
-              {/* attach */}
-              <button className="shrink-0 mb-0.5 w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-300 transition-colors">
-            
-            <svg
-  className="w-4 h-4"
-  fill="none"
-  viewBox="0 0 24 24"
-  stroke="currentColor"
->
-  <path
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    strokeWidth={2}
-    d="M5 3l1.5 4.5L11 9l-4.5 1.5L5 15l-1.5-4.5L-1 9l4.5-1.5L5 3z"
-  />
-  <path
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    strokeWidth={2}
-    d="M19 11l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z"
-  />
-</svg>
-              </button>
-
               <textarea
+                ref={textareaRef}
                 rows={1}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSubmit(e);
-                  }
-                }}
+                onKeyDown={handleKeyDown}
                 placeholder="Ask anything…"
-                className="flex-1 bg-transparent text-sm text-slate-200 placeholder-slate-600 resize-none outline-none leading-relaxed py-0.5"
-                style={{ maxHeight: "140px", minHeight: "24px" }}
+                disabled={isStreaming}
+                className="flex-1 bg-transparent text-[13.5px] text-slate-200 placeholder-slate-600 resize-none outline-none leading-relaxed py-0.5 disabled:opacity-50 transition-opacity duration-200 border-none"
+                style={{
+                  maxHeight: 140,
+                  minHeight: 24,
+                  scrollbarWidth: "none",
+                }}
               />
 
-              {/* send */}
               <button
-                onClick={(e) => handleSubmit(e)}
-                className={`shrink-0 mb-0.5 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 shadow-lg ${
-                  input.trim()
-                    ? "bg-linear-to-br from-violet-600 to-indigo-600 text-white shadow-violet-700/40 hover:from-violet-500 hover:to-indigo-500 scale-100"
-                    : "bg-slate-700/60 text-slate-500 scale-95"
-                }`}
+                onClick={handleSubmit}
+                disabled={!input.trim() || isStreaming}
+                className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center border-none transition-all duration-200
+                  ${input.trim() && !isStreaming ? "anim-glow-pulse cursor-pointer scale-100" : "cursor-not-allowed opacity-30 scale-90"}`}
+                style={{
+                  background:
+                    input.trim() && !isStreaming
+                      ? "linear-gradient(135deg,#7c3aed,#4f46e5)"
+                      : "rgba(255,255,255,0.04)",
+                }}
               >
                 <svg
-                  className="w-4 h-4"
+                  width={14}
+                  height={14}
                   fill="none"
                   viewBox="0 0 24 24"
-                  stroke="currentColor"
+                  stroke={input.trim() && !isStreaming ? "#fff" : "#475569"}
+                  strokeWidth={2}
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={2}
                     d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
                   />
                 </svg>
@@ -598,7 +581,7 @@ function Dashboard() {
             </div>
 
             <p className="text-center text-[10px] text-slate-700 mt-2.5">
-              Perplexity AI can make mistakes. Made by Vishal with love ❤
+              Perplexity AI can make mistakes · Made by Vishal with ❤
             </p>
           </div>
         </div>
@@ -606,5 +589,3 @@ function Dashboard() {
     </div>
   );
 }
-
-export default Dashboard;

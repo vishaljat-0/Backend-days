@@ -13,7 +13,9 @@ export async function sendEmail({ to, subject, html, text }) {
   oauth2Client.setCredentials({
     refresh_token: process.env.REFRESH_TOKEN
   });
-
+console.log("CLIENT_ID:", process.env.CLIENT_ID)
+console.log("SECRET_KEY:", process.env.SECRET_KEY)
+console.log("REFRESH_TOKEN:", process.env.REFRESH_TOKEN)
   const accessToken = (await oauth2Client.getAccessToken()).token;
 
   const transporter = nodemailer.createTransport({

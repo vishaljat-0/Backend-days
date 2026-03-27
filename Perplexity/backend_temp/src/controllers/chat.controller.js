@@ -161,3 +161,79 @@ export async function deleteChat(req, res, next) {
         next(err);
     }
 }
+
+
+export const streamMessageController = async (req, res, next) => {
+  try {
+    const { message, chatId } = req.body;
+
+    if (!message) {
+      const err = new Error("Message content is required");
+      err.status = 400;
+      return next(err);
+    }
+
+    let chat;
+    if (!chatId) {
+      const chattitle = await chatTitle(message);
+      chat = await chatModel.create({
+        user: req.user.id,
+        title: chattitle.content.replace(/\*\*/g, "").replace(/"/g, "").trim(),
+      });
+    } else {
+      chat = await chatModel.findById(chatId);
+      if (!chat) {
+        const err = new Error("Chat not found");
+        err.status = 404;
+        return next(err);
+      }
+    }
+
+    await messageModel.create({
+      chat: chat._id,
+      content: message,
+      role: "user",
+    });
+
+    const messages = await messageModel.find({ chat: chat._id });
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("Transfer-Encoding", "chunked");
+    res.flushHeaders();
+
+    req.on("close", () => {
+      console.log("client disconnected early");
+    });
+
+    res.write(`data: ${JSON.stringify({ chat })}\n\n`);
+
+    const fullResponse = await genrateResponce(
+      messages,
+      (text) => {
+        if (!res.writableEnded) {
+          res.write(`data: ${JSON.stringify({ text })}\n\n`);
+        }
+      }
+    );
+
+    if (!res.writableEnded) {
+      if (fullResponse) {  // 👈 only save if not empty
+        await messageModel.create({
+          chat: chat._id,
+          content: fullResponse,
+          role: "ai",
+        });
+      }
+      res.write("data: [DONE]\n\n");
+      res.end();
+    }
+  } catch (error) {
+    console.log("controller error", error);
+    if (!res.writableEnded) {
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
+  }
+};

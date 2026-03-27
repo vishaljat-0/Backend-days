@@ -1,6 +1,7 @@
 import userModel from "../models/user.model.js";
 import { sendEmail } from "../services/mail.service.js";
 import jwt from "jsonwebtoken";
+import { verificationEmailTemplate } from "../services/mail.template.js";
 
 export const registerController = async (req, res, next) => {
   try {

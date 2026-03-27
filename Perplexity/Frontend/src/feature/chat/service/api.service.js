@@ -25,5 +25,14 @@ const logout = async () => {
   const res = await api.get("/api/auth/logout");
   return res.data;
 };
+const streamMessage = ({ message, chatId }) => {
+  return fetch("http://localhost:3000/api/chats/ask-stream", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ message, chatId }),
+  });
+};  
 
-export { sendMessgae, getChat, getmessage, deletechat,logout };
+export { sendMessgae, getChat, getmessage, deletechat, logout, streamMessage,  };
+

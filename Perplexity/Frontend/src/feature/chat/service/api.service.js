@@ -18,7 +18,7 @@ const getmessage = async (chatId) => {
   const res = await api.get(`/api/chats/${chatId}/messages`);
   return res.data;
 };
-const deletechat = async (chatId) => {
+const deletechatapi = async (chatId) => {
   const res = await api.delete(`/api/chats/delete/${chatId}`);
 };
 const logout = async () => {
@@ -34,5 +34,5 @@ const streamMessage = ({ message, chatId }) => {
   });
 };  
 
-export { sendMessgae, getChat, getmessage, deletechat, logout, streamMessage,  };
+export { sendMessgae, getChat, getmessage, deletechatapi, logout, streamMessage,  };
 

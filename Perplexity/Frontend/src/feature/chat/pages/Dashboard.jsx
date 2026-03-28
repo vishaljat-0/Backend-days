@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, memo, useCallback } from "react";
 import { useChat } from "../hook/chat.hook";
 import { useSelector } from "react-redux";
 import ReactMarkdown from "react-markdown";
+import Loader from "../../../components/Loader";
 
 // ─── AI Avatar Icon ───────────────────────────────────────────────────────────
 function AIIcon() {
@@ -176,19 +177,36 @@ function EmptyState() {
 }
 
 // ─── Sidebar Chat Item ────────────────────────────────────────────────────────
-function SidebarChatItem({ chat, isActive, onClick }) {
+function SidebarChatItem({ chat, isActive, onClick, onDelete }) {
+  const [hovered, setHovered] = useState(false);
+
   return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left px-3 py-2 rounded-lg text-[12.5px] transition-all duration-150 border mb-0.5 truncate
-        ${
-          isActive
-            ? "bg-violet-950/50 text-violet-300 border-violet-800/40"
-            : "text-slate-500 border-transparent hover:bg-white/3 hover:text-slate-300"
-        }`}
+    <div
+      className={`relative flex items-center w-full rounded-lg mb-0.5 border transition-all duration-150
+        ${isActive ? "bg-violet-950/50 border-violet-800/40" : "border-transparent hover:bg-white/3"}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      {chat.title}
-    </button>
+      <button
+        onClick={onClick}
+        className={`flex-1 text-left px-3 py-2 text-[12.5px] truncate
+          ${isActive ? "text-violet-300" : "text-slate-500 hover:text-slate-300"}`}
+      >
+        {chat.title}
+      </button>
+
+      {hovered && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(chat.id); }}
+          className="shrink-0 mr-2 w-5 h-5 flex items-center justify-center rounded text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
+        >
+          <svg width={11} height={11} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -214,12 +232,14 @@ export default function Dashboard() {
     handleNewChat,
     handleLogout,
     handleStreamMessage,
+    handleDeleteChat,
   } = useChat();
   const chats = useSelector((s) => s.chat.chats);
   const currentChatId = useSelector((s) => s.chat.currentChatId);
   const currentChat = useSelector((s) => s.chat.chats[s.chat.currentChatId]);
   const isStreaming = useSelector((s) => s.chat.isStreaming);
   const username = useSelector((s) => s.auth.user.username);
+  const { isLoading } = useSelector((state) => state.chat);
 
   // ── Local state ──
   const [input, setInput] = useState("");
@@ -394,6 +414,7 @@ export default function Dashboard() {
               chat={chat}
               isActive={chat.id === currentChatId}
               onClick={() => handleOpenChat(chat.id, chats)}
+  onDelete={handleDeleteChat}
             />
           ))}
         </div>

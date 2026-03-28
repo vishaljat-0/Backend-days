@@ -9,12 +9,14 @@ import {
   setIsStreaming,
   addEmptyAiMessage,
   appendStreamChunk,
+  deleteChat
 } from "../chat.slice";
 import {
   sendMessgae,
   getChat,
   getmessage,
   streamMessage,
+  deletechatapi
 } from "../service/api.service";
 import { initializesocket } from "../service/chat.socket";
 import { useDispatch } from "react-redux";
@@ -196,6 +198,14 @@ const handleStreamMessage = async ({ message, chatId }) => {
     dispatch(setIsStreaming(false));
   }
 };
+const handleDeleteChat = async (chatId) => {
+  try {
+    await deletechatapi(chatId);      
+    dispatch(deleteChat(chatId));  
+  } catch (error) {
+    dispatch(setError(error.message));
+  }
+};
   const socket = initializesocket();
 
   return {
@@ -206,5 +216,6 @@ const handleStreamMessage = async ({ message, chatId }) => {
     handleNewChat,
     handleLogout,
     handleStreamMessage,
+    handleDeleteChat
   };
 };

@@ -35,12 +35,7 @@ export const verificationEmailTemplate = (verificationLink) => `
                 Verify Email Address →
               </a>
 
-              <p style="color:#475569;font-size:12px;line-height:1.6;margin:0 0 8px;">
-                Or copy and paste this link in your browser:
-              </p>
-              <p style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.15);border-radius:8px;padding:10px 14px;font-size:11px;color:#7c3aed;word-break:break-all;margin:0;">
-                ${verificationLink}
-              </p>
+              
             </td>
           </tr>
 

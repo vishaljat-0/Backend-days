@@ -94,6 +94,13 @@ const chatSlice = createSlice({
       state.error = null;
       state.isStreaming = false;
     },
+    deleteChat: (state, action) => {
+  const chatId = action.payload;
+  delete state.chats[chatId];
+  if (state.currentChatId === chatId) {
+    state.currentChatId = null;
+  }
+},
   },
 });
 
@@ -104,6 +111,7 @@ export const {
   setError,
   addEmptyAiMessage,
   setIsStreaming,
+  deleteChat,
 
   createNewChat,
   addNewMessage,

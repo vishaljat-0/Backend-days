@@ -28,16 +28,12 @@ export const registerController = async (req, res, next) => {
       },
       process.env.JWT_SECRET_KEY,
     );
-
+const verificationLink =
+  `http://localhost:3000/api/auth/verifyemail?token=${emailverification}`;
     await sendEmail({
       to: email,
       subject: "Welcome to Perplexity!",
-      html: `
-        <p>Hi ${username},</p>
-        <p>Thank you for registering at <strong>Perplexity</strong>.</p>
-        <p>Your account was created successfully.</p>
-        <p>Click <a href="http://localhost:3000/api/auth/verifyemail?token=${emailverification}">here</a> to verify your email.</p>
-      `,
+      html:verificationEmailTemplate(verificationLink)
     });
 
     res.status(201).json({
@@ -107,12 +103,10 @@ export const getmecontroller = async (req, res, next) => {
       message: "User fecthed  successfully",
       user,
     });
-  } catch (error) {
-    
-  }
+  } catch (error) {}
 };
 
-export const emailverificationController = async (req, res,next) => {
+export const emailverificationController = async (req, res, next) => {
   const { token } = req.query;
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
@@ -127,20 +121,14 @@ export const emailverificationController = async (req, res,next) => {
     user.verified = true;
     await user.save();
 
-    const html = `
-        <h1>Email Verified Successfully!</h1>
-        <p>Your email has been verified. You can now log in to your account.</p>
-        <a href="http://localhost:3000/login">Go to Login</a>
-    `;
-    res.send(html);
+        res.redirect("http://localhost:5173/email-verified");
+
   } catch (error) {
     next(error);
   }
 };
 
-
-
- export const logoutcontoller = async (req, res, next) => {
+export const logoutcontoller = async (req, res, next) => {
   try {
     res.clearCookie("token");
     res.status(200).json({

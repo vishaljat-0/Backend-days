@@ -4,6 +4,7 @@ import Register from "../feature/auth/pages/register";
 import Protected from "../feature/auth/components/Protected";
 import Dashboard from "../feature/chat/pages/Dashboard";
 import { Navigate } from "react-router-dom";
+import EmailVerified from "../feature/auth/pages/EmailVerified";
 
 export const router = createBrowserRouter([
   {
@@ -21,6 +22,10 @@ export const router = createBrowserRouter([
         <Dashboard />
       </Protected>
     ),
+  },
+  {
+    path: "/email-verified",
+    element: <EmailVerified />,
   },
   {
     path: "/dashboard",

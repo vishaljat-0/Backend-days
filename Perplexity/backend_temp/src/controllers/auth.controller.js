@@ -4,6 +4,9 @@ import jwt from "jsonwebtoken";
 import { verificationEmailTemplate } from "../services/mail.template.js";
 
 export const registerController = async (req, res, next) => {
+
+  console.log("Register route hit");
+console.log("Sending verification email to:", email);
   try {
     const { username, email, password } = req.body || {};
 
@@ -35,7 +38,7 @@ const verificationLink =
       subject: "Welcome to Perplexity!",
       html:verificationEmailTemplate(verificationLink)
     });
-
+console.log("Verification email function called");
     res.status(201).json({
       success: true,
       message: "User registered successfully",

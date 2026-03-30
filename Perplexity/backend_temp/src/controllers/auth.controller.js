@@ -6,19 +6,19 @@ import { verificationEmailTemplate } from "../services/mail.template.js";
 export const registerController = async (req, res, next) => {
 
   console.log("Register route hit");
-console.log("Sending verification email to:", email);
   try {
     const { username, email, password } = req.body || {};
-
+    
     const isUserexist = await userModel.findOne({
       $or: [{ email }, { username }],
     });
-
+    
     if (isUserexist) {
       const err = new Error("User already exist with this email or username");
       err.status = 400;
       return next(err);
     }
+    console.log("Sending verification email to:", email);
 
     const user = await userModel.create({
       username,

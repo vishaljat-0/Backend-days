@@ -1,7 +1,6 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:3000",
   withCredentials: true,
 });
 
@@ -26,7 +25,7 @@ const logout = async () => {
   return res.data;
 };
 const streamMessage = ({ message, chatId }) => {
-  return fetch("http://localhost:3000/api/chats/ask-stream", {
+  return fetch("/api/chats/ask-stream", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",

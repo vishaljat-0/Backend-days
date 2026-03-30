@@ -29,7 +29,7 @@ export const registerController = async (req, res, next) => {
       process.env.JWT_SECRET_KEY,
     );
 const verificationLink =
-  `http://localhost:3000/api/auth/verifyemail?token=${emailverification}`;
+  `${process.env.BASE_URL}/api/auth/verifyemail?token=${emailverification}`;
     await sendEmail({
       to: email,
       subject: "Welcome to Perplexity!",
@@ -121,8 +121,7 @@ export const emailverificationController = async (req, res, next) => {
     user.verified = true;
     await user.save();
 
-        res.redirect("http://localhost:5173/email-verified");
-
+res.redirect(`${process.env.FRONTEND_URL}/email-verified`);
   } catch (error) {
     next(error);
   }

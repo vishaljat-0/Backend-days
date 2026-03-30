@@ -11,34 +11,35 @@ export async function sendEmail({ to, subject, html, text }) {
   );
 
   oauth2Client.setCredentials({
-    refresh_token: process.env.REFRESH_TOKEN
+    refresh_token: process.env.REFRESH_TOKEN,
   });
-console.log("CLIENT_ID:", process.env.CLIENT_ID)
-console.log("SECRET_KEY:", process.env.SECRET_KEY)
-console.log("REFRESH_TOKEN:", process.env.REFRESH_TOKEN)
-  const accessToken = (await oauth2Client.getAccessToken()).token;
+
+  const accessToken = await oauth2Client.getAccessToken();
 
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
       type: "OAuth2",
       user: process.env.GOOGLE_USER,
       clientId: process.env.CLIENT_ID,
       clientSecret: process.env.SECRET_KEY,
       refreshToken: process.env.REFRESH_TOKEN,
-      accessToken: accessToken
-    }
+      accessToken: accessToken.token,
+    },
   });
 
   const mailOptions = {
-    from: process.env.GOOGLE_USER,
+    from: `"Perplexity AI" <${process.env.GOOGLE_USER}>`,
     to,
     subject,
     html,
-    text
+    text,
   };
 
   const info = await transporter.sendMail(mailOptions);
   console.log("Email sent:", info.messageId);
+
   return info;
 }

@@ -17,6 +17,8 @@ app.use(
     credentials: true,
   }),
 );
+app.use(express.static("public"));
+
 
 app.use("/api/auth", authRoute);
 app.use("/api/chats", chatRouter);
